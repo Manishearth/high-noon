@@ -1,13 +1,9 @@
 #!/usr/local/bin/python
 
 import sys
-from datetime import datetime, time, timedelta, date
+from datetime import datetime, time, timedelta
 import ephem
-import pytz
 import math
-
-# 
-EPSILON=0.00418
 
 def sign(x):
     if x >=0:
@@ -31,35 +27,46 @@ def dst_noon_iterator(offset, dst):
         else:
             yield start + timedelta(days=n)
 
+STATES = [
+    ("CA", 118.5, 114.6, 8, True),
+    ("AZ", 114.5, 109., 7, False),
+    ("NM", 109., 103., 7, True),
+]
 
-# 111.8
-start = datetime(2018, 1, 1, 19, 0, 0) # noon in GMT + 7
-obs = ephem.Observer()
-obs.lat = 35.2 # doesn't matter for high noon
-sun = ephem.Sun()
+
+print("STATE", "DATE\t\t", "°", "12:00:00\t", "12:00:01\t", "11:59:59", sep="\t")
 
 
-for l10 in range(11450, 10900, -1):
-    lon = l10 / 100.
-    obs.lon = lon
-    prev=None
-    for d in (start + timedelta(days=n) for n in range(365)):
-        obs.date = d
-        sun.compute(obs)
-        deg = norm_az(sun)
+def check(obs, d, deg):
+    obs.date = d + timedelta(seconds=1)
+    sun.compute(obs)
+    d1 = norm_az(sun)
+    obs.date = d + timedelta(seconds=-1)
+    sun.compute(obs)
+    d2 = norm_az(sun)
+    if abs(d1) > abs(deg) and abs(d2) > abs(deg):
+        print(state, d, lon, deg, d1, d2, sep="\t")
 
-        if prev:
-            if sign(prev) != sign(deg) and abs(prev - deg) < 90:
-                obs.date = d + timedelta(seconds=1)
-                sun.compute(obs)
-                d1 = norm_az(sun)
-                obs.date = d + timedelta(seconds=-1)
-                sun.compute(obs)
-                d2 = norm_az(sun)
-                if abs(d1) > abs(prev) or abs(d2) > abs(prev):
-                    print(d + timedelta(days=-1), lon, prev, d1, d2)
-                if abs(d1) > abs(deg) or abs(d2) > abs(deg):
-                    print(d, lon, deg, d1, d2)
-        prev = deg
+for (state, start, end, offset, dst) in STATES:
+    obs = ephem.Observer()
+    obs.lat = 35.2 # doesn't matter for high noon
+    sun = ephem.Sun()
 
-        
+
+    for scaled_long in range(int(start * 100), int(end * 100), -1):
+        lon = -scaled_long / 100.
+        obs.lon = lon
+        prev=None
+        for date in dst_noon_iterator(offset, dst):
+            obs.date = date
+            sun.compute(obs)
+            angle = norm_az(sun)
+
+            if prev:
+                prev_angle, prev_date = prev
+                if sign(prev_angle) != sign(angle) and abs(prev_angle - angle) < 90:
+                    check(obs, prev_date, prev_angle)
+                    check(obs, date, angle)
+            prev = (angle, date)
+
+            
