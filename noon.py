@@ -66,13 +66,13 @@ sun = ephem.Sun()
 # The latitude does change the azimuthal angles, but it should not affect
 # when high noon is. However, I'm picking 35.2 since it's the latitude of
 # most of route 66
-obs.lat = 35.2
+obs.lat = '35.2'
 
 for (state, start, end, offset, dst) in STATES:
     for scaled_long in range(int(start * 100), int(end * 100), -1):
         # Our longitudes are west, so negative
         lon = -scaled_long / 100.
-        obs.lon = lon
+        obs.lon = str(lon)
         prev = None
         for date in dst_noon_iterator(offset, dst):
             obs.date = date
