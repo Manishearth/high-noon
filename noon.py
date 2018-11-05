@@ -34,12 +34,13 @@ def dst_noon_iterator(offset, dst):
         else:
             yield start + timedelta(days=n)
 
-# Bounds of latutudes
+# Bounds of longitudes
 STATES = [
     ("CA", 118.5, 114.6, 8, True),
     ("AZ", 114.5, 109., 7, False),
     ("NM", 109., 103., 7, True),
     ("TX", 103., 100., 6, True), # only the panhandle
+    ("OK", 100., 94.5, 6, True),
 ]
 
 
@@ -72,7 +73,7 @@ for (state, start, end, offset, dst) in STATES:
         # Our longitudes are west, so negative
         lon = -scaled_long / 100.
         obs.lon = lon
-        prev=None
+        prev = None
         for date in dst_noon_iterator(offset, dst):
             obs.date = date
             sun.compute(obs)
